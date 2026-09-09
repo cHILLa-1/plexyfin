@@ -1,0 +1,63 @@
+CHANGES - v6.4.0 (from v6.3.0)
+================================
+
+JELLYFIN v12 COMPATIBILITY UPDATE
+
+Dependencies:
+  - Jellyfin.Controller: 10.10.7 → 12.0.0
+  - Jellyfin.Model: 10.10.7 → 12.0.0
+
+Framework:
+  - TargetFramework: net8.0 → net10.0
+
+Version Bumps:
+  - AssemblyVersion: 0.6.3.0 → 6.4.0
+  - FileVersion: 0.6.3.0 → 6.4.0
+  - meta.json version: 0.6.3.0 → 6.4.0
+  - targetAbi: 10.10.0.0 → 12.0.0.0
+
+API Breaking Changes Fixed:
+  - TaskTriggerInfo.Type: Migrated from constant to enum (TaskTriggerInfoType.IntervalTrigger)
+  - Plugin.cs line 152: Updated scheduled task trigger type definition
+
+Files Modified:
+  1. Jellyfin.Plugin.Plexyfin/Jellyfin.Plugin.Plexyfin.csproj
+     - Updated package versions
+     - Changed target framework to net10.0
+     - Updated assembly versions
+
+  2. Jellyfin.Plugin.Plexyfin/meta.json
+     - Updated plugin version to 6.4.0
+     - Updated targetAbi to 12.0.0.0
+
+  3. Jellyfin.Plugin.Plexyfin/Plugin.cs
+     - Updated version log from 0.6.3.0 to 6.4.0
+     - Fixed TaskTriggerInfo.Type enum usage for Jellyfin v12 compatibility
+
+Compatibility:
+  - ✓ No breaking changes to core plugin functionality
+  - ✓ All existing configurations remain compatible
+  - ✓ Requires .NET 10.0 SDK and runtime
+  - ✓ Requires Jellyfin v12.0.0 or higher
+  - ✓ API endpoints unchanged
+
+Testing Performed:
+  - dotnet restore: Success
+  - dotnet build -c Release: Success
+  - Framework compatibility: Verified
+  - Enum API usage: Verified
+
+Build Requirements:
+  - .NET 10.0 SDK minimum
+  - Visual Studio 2022 / VS Code
+
+Installation:
+  1. Download v6.4.0 release
+  2. Extract to Jellyfin plugins directory
+  3. Restart Jellyfin
+  4. Plugin loads without configuration changes needed
+
+Notes:
+  - Package warnings (NU1510) for redundant NuGet refs - non-critical
+  - All functionality from v6.3.0 retained
+  - Direct upgrade path from v6.3.0 (no migration needed)
