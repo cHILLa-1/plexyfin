@@ -2,12 +2,12 @@
   "name": "Plexyfin",
   "id": "b9f0c474-e9a8-4292-ae41-eb3c1542f4cd",
   "guid": "b9f0c474-e9a8-4292-ae41-eb3c1542f4cd",
-  "version": "0.6.3.0",
+  "version": "6.4.0",
   "overview": "Plugin for Jellyfin that syncs collections and artwork from Plex to Jellyfin",
   "description": "Syncs collections, artwork, and their metadata from your Plex Media Server to Jellyfin.",
   "owner": "plexyfin",
   "category": "General",
-  "targetAbi": "10.10.0.0",
+  "targetAbi": "12.0.0.0",
   "changelog": "- Skip re-downloading artwork that hasn't changed in Plex (compares Plex updatedAt against local file), with a Force Replace All Artwork override\n- Add configurable concurrency limit (MaxConcurrentApiRequests, default 3) to prevent flooding Plex and Jellyfin during artwork sync\n- Process artwork in real batches with a configurable pause between batches\n- Bound previously unlimited parallelism for season and episode artwork sync\n- Request external IDs (includeGuids) from Plex for more reliable item matching\n- Enable nullable reference types and clean up build warnings",
   "imageUrl": "https://raw.githubusercontent.com/plexyfin/plexyfin/main/plexyfin.png"
 }
