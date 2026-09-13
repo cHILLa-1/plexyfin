@@ -134,7 +134,8 @@ namespace Jellyfin.Plugin.Plexyfin.Plex
                         Id = directory.Attribute("ratingKey")?.Value ?? string.Empty,
                         Title = directory.Attribute("title")?.Value ?? string.Empty,
                         SortTitle = directory.Attribute("titleSort")?.Value ?? string.Empty,
-                        Summary = directory.Attribute("summary")?.Value ?? string.Empty
+                        Summary = directory.Attribute("summary")?.Value ?? string.Empty,
+                        UpdatedAt = ParseUpdatedAt(directory)
                     };
                     
                     // Set thumbnail URL if available
@@ -225,7 +226,8 @@ namespace Jellyfin.Plugin.Plexyfin.Plex
                     {
                         Id = element.Attribute("ratingKey")?.Value ?? string.Empty,
                         Title = element.Attribute("title")?.Value ?? string.Empty,
-                        Type = element.Attribute("type")?.Value ?? "movie"
+                        Type = element.Attribute("type")?.Value ?? "movie",
+                        UpdatedAt = ParseUpdatedAt(element)
                     };
                     
                     // Extract file path from Media/Part elements
@@ -282,7 +284,8 @@ namespace Jellyfin.Plugin.Plexyfin.Plex
                     {
                         Id = element.Attribute("ratingKey")?.Value ?? string.Empty,
                         Title = element.Attribute("title")?.Value ?? string.Empty,
-                        Type = element.Attribute("type")?.Value ?? "show"
+                        Type = element.Attribute("type")?.Value ?? "show",
+                        UpdatedAt = ParseUpdatedAt(element)
                     };
                     
                     // Extract external IDs from Guid elements
@@ -364,7 +367,8 @@ namespace Jellyfin.Plugin.Plexyfin.Plex
 
                 foreach (var season in seasons)
                 {
-                    var url = new Uri(_baseUrl, $"library/metadata/{season.Id}/children?X-Plex-Token={_token}");
+                    // Include external IDs (Guids) in the response for better matching
+                    var url = new Uri(_baseUrl, $"library/metadata/{season.Id}/children?includeGuids=1&X-Plex-Token={_token}");
 
                     var response = await client.GetAsync(url).ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
@@ -390,7 +394,8 @@ namespace Jellyfin.Plugin.Plexyfin.Plex
                                 ParentIndex = season.Index,
                                 SeriesId = seriesId,
                                 SeriesTitle = season.SeriesTitle,
-                                TvdbId = season.TvdbId // Inherit from parent series
+                                TvdbId = season.TvdbId, // Inherit from parent series
+                                UpdatedAt = ParseUpdatedAt(episodeElement)
                             };
 
                             // Set thumbnail URL if available
@@ -466,7 +471,8 @@ namespace Jellyfin.Plugin.Plexyfin.Plex
             try
             {
                 using var client = _httpClientFactory.CreateClient();
-                var url = new Uri(_baseUrl, $"library/metadata/{seriesId}/children?X-Plex-Token={_token}");
+                // Include external IDs (Guids) in the response for better matching
+                var url = new Uri(_baseUrl, $"library/metadata/{seriesId}/children?includeGuids=1&X-Plex-Token={_token}");
 
                 _logger.LogInformation("Getting seasons for TV series ID {0}", seriesId);
 
@@ -517,7 +523,8 @@ namespace Jellyfin.Plugin.Plexyfin.Plex
                             Index = seasonIndex,
                             SeriesId = seriesId,
                             SeriesTitle = seriesTitle,
-                            TvdbId = seriesTvdbId // Inherit from parent series
+                            TvdbId = seriesTvdbId, // Inherit from parent series
+                            UpdatedAt = ParseUpdatedAt(element)
                         };
 
                         // Set thumbnail URL if available
@@ -592,22 +599,23 @@ namespace Jellyfin.Plugin.Plexyfin.Plex
             try
             {
                 // Define a prioritized list of URL patterns to try
+                // Include external IDs (Guids) in the response for better matching
                 var urlPatterns = new List<Uri>
                 {
                     // Most common pattern
-                    new Uri(_baseUrl, $"library/collections/{collectionId}/children?X-Plex-Token={_token}"),
-                    
+                    new Uri(_baseUrl, $"library/collections/{collectionId}/children?includeGuids=1&X-Plex-Token={_token}"),
+
                     // Alternative pattern for older Plex servers
-                    new Uri(_baseUrl, $"library/metadata/{collectionId}/children?X-Plex-Token={_token}"),
-                    
+                    new Uri(_baseUrl, $"library/metadata/{collectionId}/children?includeGuids=1&X-Plex-Token={_token}"),
+
                     // Another alternative pattern
-                    new Uri(_baseUrl, $"library/collections/{collectionId}/all?X-Plex-Token={_token}"),
-                    
+                    new Uri(_baseUrl, $"library/collections/{collectionId}/all?includeGuids=1&X-Plex-Token={_token}"),
+
                     // Yet another pattern
-                    new Uri(_baseUrl, $"library/metadata/{collectionId}/items?X-Plex-Token={_token}"),
-                    
+                    new Uri(_baseUrl, $"library/metadata/{collectionId}/items?includeGuids=1&X-Plex-Token={_token}"),
+
                     // Last resort pattern
-                    new Uri(_baseUrl, $"library/collections/{collectionId}/items?X-Plex-Token={_token}")
+                    new Uri(_baseUrl, $"library/collections/{collectionId}/items?includeGuids=1&X-Plex-Token={_token}")
                 };
                 
                 // Use all patterns since MaxUrlPatternAttempts was removed
@@ -641,7 +649,8 @@ namespace Jellyfin.Plugin.Plexyfin.Plex
                             {
                                 Id = element.Attribute("ratingKey")?.Value ?? string.Empty,
                                 Title = element.Attribute("title")?.Value ?? string.Empty,
-                                Type = element.Attribute("type")?.Value ?? "movie"
+                                Type = element.Attribute("type")?.Value ?? "movie",
+                                UpdatedAt = ParseUpdatedAt(element)
                             };
                             
                             // Extract file path from Media/Part elements
@@ -697,7 +706,8 @@ namespace Jellyfin.Plugin.Plexyfin.Plex
                             {
                                 Id = element.Attribute("ratingKey")?.Value ?? string.Empty,
                                 Title = element.Attribute("title")?.Value ?? string.Empty,
-                                Type = element.Attribute("type")?.Value ?? "show"
+                                Type = element.Attribute("type")?.Value ?? "show",
+                                UpdatedAt = ParseUpdatedAt(element)
                             };
                             
                             // Extract external IDs from Guid elements
@@ -792,6 +802,24 @@ namespace Jellyfin.Plugin.Plexyfin.Plex
             return items;
         }
         
+        /// <summary>
+        /// Parses the "updatedAt" attribute (a Unix epoch timestamp in seconds) from a Plex
+        /// XML element, if present.
+        /// </summary>
+        /// <param name="element">The Plex XML element (Video, Directory, etc.).</param>
+        /// <returns>The parsed timestamp, or null if the attribute is missing or invalid.</returns>
+        private static DateTimeOffset? ParseUpdatedAt(XElement element)
+        {
+            var updatedAtValue = element.Attribute("updatedAt")?.Value;
+            if (!string.IsNullOrEmpty(updatedAtValue) &&
+                long.TryParse(updatedAtValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var updatedAtUnix))
+            {
+                return DateTimeOffset.FromUnixTimeSeconds(updatedAtUnix);
+            }
+
+            return null;
+        }
+
         /// <summary>
         /// Extracts external IDs from Plex XML element.
         /// </summary>
